@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8"/>
+		
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+		
+		<meta name="author" content="Gustavo Toyota"/>
+		<meta name="description" content="Review concepts easily.">
+		<meta name="keywords" content="concept,review">
+		
+		<meta name="apple-mobile-web-app-title" content="Concept Reviewer">
+		
+		<!-- Basic metadata -->
+		<meta property="og:title" content="Concept Reviewer"/>
+		<meta property="og:url" content=""/>
+		<meta property="og:type" content="website"/>
+		<meta property="og:description" content="Review concepts easily."/>
+		
+		<!-- Optional metadata -->
+		<meta property="og:site_name" content="Concept Reviewer"/>
+		<meta property="og:determiner" content="the"/>
+		<meta property="og:locale" content="en_US">
+        
+        <title>Concept Reviewer</title>
+        
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+        
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+        
+            html {
+                height: 100%;
+            }
+            
+            body {
+                display: flex;
+            
+                margin: 0;
+                
+                height: 100%;
+                
+                padding: 15px;
+            }
+            
+            .window {
+                display: flex;
+                
+                margin: auto;
+            
+                border: 1px solid black;
+                border-radius: 25px;
+                
+                width: 100%;
+                max-width: 600px;
+                height: 600px;
+                
+                flex-direction: column;
+            }
+            
+            .header {
+                padding: 12px 0;
+            
+                text-align: center;
+            }
+            
+            .frame {
+                flex: 1;
+                
+                display: flex;
+                
+                flex-direction: column;
+            }
+            
+            .body {
+                flex: 1;
+                
+                display: flex;
+                
+                border-top: 1px solid black;
+                border-bottom: 1px solid black;
+                
+                padding: 20px;
+                
+                flex-direction: column;
+            }
+            
+            .footer {
+                padding: 20px 20px;
+            }
+            
+            /* Concepts frame */
+            #conceptsTextArea {
+                height: 100%;
+                
+                resize: none;
+                
+                overflow-y: scroll;
+            }
+            
+            #conceptsStartButton {
+                width: 100%;
+                height: 50px;
+            }
+            
+            /* Review frame */
+            #reviewConcepts {
+                border: 1px solid #c0c0c0;
+                
+                height: 100%;
+                
+                overflow-y: scroll;
+            }
+            
+            .reviewConcept:not(:first-child) {
+                border-top: 1px solid #c0c0c0;
+            }
+            .reviewQuestion {
+                color: blue;
+            }
+            .reviewAnswer {
+                font-weight: bold;
+                
+                color: red;
+            }
+            .reviewExtra {
+                font-weight: bold;
+                
+                color: green;
+            }
+            
+            #reviewTextArea {
+                resize: none;
+                
+                height: 100%;
+                
+                overflow-y: scroll;
+            }
+            
+            .buttons {
+                display: flex;
+            }
+            .buttons:not(:first-child) {
+                margin-top: 10px;
+            }
+            .button {
+                flex: 1;
+                
+                height: 30px;
+            }
+            .button:not(:first-child) {
+                margin-left: 15px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="window">
+            <div class="header">Concept Reviewer</div>
+            
+            <div id="conceptsFrame" class="frame">
+                <div class="body">
+                    <label for="conceptsTextArea">Write one concept in each line, in the following format: question(tab)answer(tab)extra</label>
+                    <textarea id="conceptsTextArea"></textarea>
+                </div>
+                <div class="footer">
+                    <input id="conceptsStartButton" type="button" value="Start Review"/>
+                </div>
+            </div>
+            
+            <div id="reviewFrame" class="frame" style="display: none">
+                <div class="body">
+                    <div id="reviewConcepts"></div>
+                    <textarea id="reviewTextArea" style="display: none" readonly></textarea>
+                </div>
+                <div class="footer">
+                    <div class="buttons">
+                        <input id="reviewOriginalButton" type="button" class="button" value="Original order"/>
+                        <input id="reviewRandomizeButton" type="button" class="button" value="Randomize order"/>
+                        <input id="reviewFlipButton" type="button" class="button" value="Flip concepts"/>
+                    </div>
+                    <div class="buttons">
+                        <input id="reviewQuitButton" type="button" class="button" value="Quit review"/>
+                        <input id="reviewToggleButton" type="button" class="button" value="Toggle text"/>
+                        <input id="reviewClearButton" type="button" class="button" value="Remove easy concepts"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            var concepts = [];
+            var indices = [];
+            var flipped = true;
+            
+            // Concepts frame
+            function readConcepts() {
+                concepts = [];
+                
+                var lines = conceptsTextArea.value.split("\n");
+                for (var line of lines) {
+                    var columns = line.split("\t");
+                    
+                    if (columns.length < 2)
+                        continue;
+                        
+                    var concept = {question: columns[0], answer: columns[1], extra: ""};
+                    
+                    if (columns.length >= 3)
+                        concept.extra = columns[2];
+                        
+                    concepts.push(concept);
+                }
+                
+                indices = [];
+                for (var i = 0; i < concepts.length; ++i)
+                    indices[i] = i;
+                    
+                flipped = false;
+            }
+            
+            conceptsStartButton.addEventListener("click", function () {
+                readConcepts();
+                
+                reviewPrintConcepts();
+                reviewFrame.style.display = "flex";
+                conceptsFrame.style.display = "none";
+            });
+            
+            // Review frame
+            function reviewOriginalOrder() {
+                indices.sort(function (a, b) { return a - b; });
+            }
+            
+            function reviewRandomizeOrder() {
+                for (var i = 0; i < indices.length; ++i) {
+                    var index = Math.floor(i + 1 + Math.random() * (indices.length - i - 2));
+                    
+                    indices[i] = [indices[index], indices[index] = indices[i]][0];
+                }
+            }
+            
+            function reviewFlipConcepts() {
+                flipped = !flipped;
+            }
+            
+            function reviewPrintConcepts() {
+                $("#reviewConcepts").html("");
+            
+                for (var index of indices) {
+                    $("<div class='reviewConcept'>" +
+                        "<span class='reviewQuestion'>" + (flipped ? concepts[index].answer : concepts[index].question) + "</span> " +
+                        "<span id='reviewAnswer" + index + "' style='display: none'>= " +
+                            "<span class='reviewAnswer'>" + (flipped ? concepts[index].question : concepts[index].answer) + "</span> " +
+                            "<span class='reviewExtra'>" + concepts[index].extra + "</span>" +
+                        "</span> " +
+                        "<input id='reviewToggle" + index + "' type='button' value='Show answer' onclick='reviewToggleAnswer(" + index + ")'/> " +
+                        "Hard <input id='reviewHard" + index + "' type='checkbox'/>" +
+                    "</div>").appendTo("#reviewConcepts");
+                }
+                
+                $("#reviewTextArea").val("");
+                
+                for (var index of indices) {
+                    $("#reviewTextArea").val(function (i, text) {
+                        return text + concepts[index].question +
+                        "\t" + concepts[index].answer +
+                        (concepts[index].extra === "" ? "" : "\t" + concepts[index].extra) + "\n";
+                    });
+                }
+            }
+            
+            function reviewToggleAnswer(index) {
+                if ($("#reviewAnswer" + index).css("display") === "none") {
+                    $("#reviewAnswer" + index).css("display", "inline");
+                    $("#reviewToggle" + index).val("Hide answer");
+                } else {
+                    $("#reviewAnswer" + index).css("display", "none");
+                    $("#reviewToggle" + index).val("Show answer");
+                }
+            }
+            
+            function reviewSaveHardConcepts() {
+                var hardConcepts = [];
+            
+                for (var index of indices)
+                    if ($("#reviewHard" + index).prop("checked"))
+                        hardConcepts.push(index);
+                        
+                return hardConcepts;
+            }
+            
+            function reviewRestoreHardConcepts(hardConcepts) {
+                for (var index of hardConcepts)
+                    $("#reviewHard" + index).prop("checked", true);
+            }
+            
+            reviewOriginalButton.addEventListener("click", function () {
+                var hardConcepts = reviewSaveHardConcepts();
+                
+                reviewOriginalOrder();
+                reviewPrintConcepts();
+                
+                reviewRestoreHardConcepts(hardConcepts);
+            });
+            
+            reviewRandomizeButton.addEventListener("click", function () {
+                var hardConcepts = reviewSaveHardConcepts();
+                
+                reviewRandomizeOrder();
+                reviewPrintConcepts();
+                
+                reviewRestoreHardConcepts(hardConcepts);
+            });
+            
+            reviewFlipButton.addEventListener("click", function () {
+                var hardConcepts = reviewSaveHardConcepts();
+                
+                reviewFlipConcepts();
+                reviewPrintConcepts();
+                
+                reviewRestoreHardConcepts(hardConcepts);
+            });
+            
+            reviewQuitButton.addEventListener("click", function () {
+                conceptsFrame.style.display = "flex";
+                reviewFrame.style.display = "none";
+            });
+            
+            reviewToggleButton.addEventListener("click", function () {
+                if ($("#reviewTextArea").css("display") === "none") {
+                    reviewTextArea.style.display = "inline-block";
+                    reviewConcepts.style.display = "none";
+                } else {
+                    reviewConcepts.style.display = "block";
+                    reviewTextArea.style.display = "none";
+                }
+            });
+            
+            reviewClearButton.addEventListener("click", function () {
+                var newIndices = [];
+                
+                for (var index of indices)
+                    if ($("#reviewHard" + index).prop("checked"))
+                        newIndices.push(index);
+                        
+                indices = newIndices;
+                
+                reviewPrintConcepts();
+                
+                reviewConcepts.style.display = "block";
+                reviewTextArea.style.display = "none";
+            });
+        </script>
+    </body>
+</html>

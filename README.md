@@ -1,4 +1,4 @@
-# Concept Reviewe
+# Concept Reviewer
 
 Concept Reviewer is an online tool designed to assist in the memorization of concepts.
 
